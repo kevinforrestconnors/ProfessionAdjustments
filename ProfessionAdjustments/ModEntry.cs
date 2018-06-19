@@ -10,7 +10,7 @@ using StardewValley.Tools;
 namespace ProfessionAdjustments
 {
     /// <summary>The main entry point.</summary>
-    public class ModEntry : Mod
+    public class ModEntry : Mod, IAssetEditor
     {
         /*********
         ** Properties
@@ -21,6 +21,8 @@ namespace ProfessionAdjustments
 
         private List<StardewValley.Object> toolTipsAlreadyAdjusted = new List<StardewValley.Object>();
 
+        private double onePt4OverOnePt1 = 1.2727272727;
+
         /*********
         ** Public methods
         *********/
@@ -28,33 +30,33 @@ namespace ProfessionAdjustments
         /// <param name="helper">Provides simplified APIs for writing mods.</param>
         public override void Entry(IModHelper helper)
         {
-
-            SaveEvents.BeforeSave += this.SaveEvents_BeforeSave;
-            SaveEvents.AfterSave += this.SaveEvents_AfterSave;
             MenuEvents.MenuClosed += this.MenuEvents_MenuClosed;
             MenuEvents.MenuChanged += this.MenuEvents_MenuChanged;
-            PlayerEvents.InventoryChanged += this.PlayerEvents_InventoryChanged;
             ControlEvents.MouseChanged += this.ControlEvents_MouseChanged;
 
+        }
+
+        public bool CanEdit<T>(IAssetInfo asset)
+        {
+            // change 40% to 10% in Artisan description
+            if (asset.AssetNameEquals("Strings/UI"))
+                return true;
+
+            return false;
+        }
+
+        public void Edit<T>(IAssetData asset)
+        {
+            if (asset.AssetNameEquals("Strings/UI"))
+            {
+                IDictionary<string, string> data = asset.AsDictionary<string, string>().Data;
+                data["LevelUp_ProfessionDescription_Artisan"] = "Artisan goods(wine, cheese, oil, etc.) worth 10 % more.";
+            }
         }
 
         /*********
         ** Private methods
         *********/
-
-        /* SaveEvents_BeforeSave
-         * 
-         */
-        private void SaveEvents_BeforeSave(object sender, EventArgs eventArgs) 
-        {
-        }
-
-        /* SaveEvents_AfterSave
-         * 
-         */
-        private void SaveEvents_AfterSave(object sender, EventArgs eventArgs)
-        {
-        }
 
         /* MenuEvents_MenuClosed
          */
@@ -71,25 +73,20 @@ namespace ProfessionAdjustments
          */
         private void ControlEvents_MouseChanged(object sender, EventArgsMouseStateChanged e) {
 
-            this.Monitor.Log("Line 71");
             var x = e.PriorPosition.X;
-            this.Monitor.Log("Line 73");
             var y = e.PriorPosition.Y;
-            this.Monitor.Log("Line 75");
+
             if (Game1.activeClickableMenu is ShopMenu)
             {
-                this.Monitor.Log("Line 78");
                 var shop = Game1.activeClickableMenu as ShopMenu;
 
-                this.Monitor.Log("Line 81");
                 foreach (ClickableComponent c in shop.inventory.inventory)
                 {
                     if (c.containsPoint(x, y))
                     {
-                        this.Monitor.Log("Line 86");
                         Item clickableComponent = shop.inventory.getItemFromClickableComponent(c);
                         bool isArtisan = this.ProfessionIsArtisan() && clickableComponent.Category == -26;
-                        double artisanValue = isArtisan ? 1.27272727272 : 1;
+                        double artisanValue = isArtisan ? onePt4OverOnePt1 : 1;
 
                         this.Monitor.Log(isArtisan.ToString());
 
@@ -99,7 +96,7 @@ namespace ProfessionAdjustments
 
                             if (clickableComponent is StardewValley.Object obj && clickableComponent.Category == -26 && !this.toolTipsAlreadyAdjusted.Contains(obj)) // -26 is artisan goods
                             {
-                                obj.Price = (int)(obj.Price / 1.2727272727272);
+                                obj.Price = (int)(obj.Price / onePt4OverOnePt1);
                                 this.toolTipsAlreadyAdjusted.Add(obj);
                             }
 
@@ -127,7 +124,7 @@ namespace ProfessionAdjustments
 
                             if (item is StardewValley.Object obj && item.Category == -26) // -26 is artisan goods
                             {
-                                obj.Price = (int)(obj.Price / 1.2727272727272);
+                                obj.Price = (int)(obj.Price / onePt4OverOnePt1);
                             }
                             else
                             {
@@ -137,51 +134,6 @@ namespace ProfessionAdjustments
                     }
                 }
             }
-        }
-
-        /* PlayerEvents_InventoryChanged
-                 * 
-                 * 
-                 * 
-                 */
-        private void PlayerEvents_InventoryChanged(object sender, EventArgsInventoryChanged e)
-        {
-            //if (Game1.activeClickableMenu is ShopMenu) {
-
-            //    for (int i = 0; i < e.Removed.Count; i++)
-            //    {
-
-            //        Item item = e.Removed[i].Item;
-
-            //        if (this.ProfessionIsArtisan() && item.Category == -26)
-            //        {
-            //            if (item is StardewValley.Object obj && item.Category == -26) // -26 is artisan goods
-            //            {
-            //                int deficit = (int)(obj.Price * 0.3f);
-            //                Game1.player.money -= deficit; 
-
-            //            }
-            //        }
-            //    }
-
-            //    for (int j = 0; j < e.QuantityChanged.Count; j++)
-            //    {
-            //        Item item = e.QuantityChanged[j].Item;
-
-
-            //        if (this.ProfessionIsArtisan() && item.Category == -26)
-            //        {
-
-            //            int quantitySold = e.QuantityChanged[j].StackChange;
-
-            //            if (item is StardewValley.Object obj && item.Category == -26) // -26 is artisan goods
-            //            {
-            //                int deficit = (int)(quantitySold * (obj.Price * 0.3f));
-            //                Game1.player.money -= deficit;
-            //            }
-            //        }
-            //    }
-            //}
         }
     
         private bool ProfessionIsArtisan() {
