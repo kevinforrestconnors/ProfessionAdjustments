@@ -85,13 +85,12 @@ namespace ProfessionAdjustments
                     if (c.containsPoint(x, y))
                     {
                         Item clickableComponent = shop.inventory.getItemFromClickableComponent(c);
-                        bool isArtisan = this.ProfessionIsArtisan() && clickableComponent.Category == -26;
-                        double artisanValue = isArtisan ? onePt4OverOnePt1 : 1;
-
-                        this.Monitor.Log(isArtisan.ToString());
 
                         if (clickableComponent != null && shop.highlightItemToSell(clickableComponent))
                         {
+                            bool isArtisan = this.ProfessionIsArtisan() && clickableComponent.Category == -26;
+                            double artisanValue = isArtisan ? onePt4OverOnePt1 : 1;
+
                             double sellPercentage = (double)this.Helper.Reflection.GetField<float>(shop, "sellPercentage").GetValue();
 
                             if (clickableComponent is StardewValley.Object obj && clickableComponent.Category == -26 && !this.toolTipsAlreadyAdjusted.Contains(obj)) // -26 is artisan goods
