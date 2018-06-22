@@ -19,9 +19,10 @@ namespace ProfessionAdjustments
 
         private List<Item> artisanGoodsShipped = new List<Item>();
 
-        private List<StardewValley.Object> toolTipsAlreadyAdjusted = new List<StardewValley.Object>();
+        private Dictionary<string, int> itemsWithChangedValues = new Dictionary<string, int>();
 
-        private double onePt4OverOnePt1 = 1.2727272727;
+        private double onePt4OverOnePt1 = 1.4 / 1.1;
+        private double onePt4OverOnePt2 = 1.4 / 1.2;
 
         /*********
         ** Public methods
@@ -30,10 +31,10 @@ namespace ProfessionAdjustments
         /// <param name="helper">Provides simplified APIs for writing mods.</param>
         public override void Entry(IModHelper helper)
         {
-            MenuEvents.MenuClosed += this.MenuEvents_MenuClosed;
-            MenuEvents.MenuChanged += this.MenuEvents_MenuChanged;
-            ControlEvents.MouseChanged += this.ControlEvents_MouseChanged;
-
+            PlayerEvents.InventoryChanged += this.PlayerEvents_InventoryChanged;
+            SaveEvents.AfterCreate += this.SaveEvents_AfterCreate;
+            SaveEvents.AfterLoad += this.SaveEvents_AfterLoad;
+            SaveEvents.BeforeSave += this.SaveEvents_BeforeSave;
         }
 
         public bool CanEdit<T>(IAssetInfo asset)
@@ -50,7 +51,7 @@ namespace ProfessionAdjustments
             if (asset.AssetNameEquals("Strings/UI"))
             {
                 IDictionary<string, string> data = asset.AsDictionary<string, string>().Data;
-                data["LevelUp_ProfessionDescription_Artisan"] = "Artisan goods(wine, cheese, oil, etc.) worth 10 % more.";
+                data["LevelUp_ProfessionDescription_Artisan"] = "Artisan goods (wine, cheese, oil, etc.) worth 10% more.";
             }
         }
 
@@ -58,77 +59,50 @@ namespace ProfessionAdjustments
         ** Private methods
         *********/
 
-        /* MenuEvents_MenuClosed
-         */
-        private void MenuEvents_MenuClosed(object sender, EventArgsClickableMenuClosed e)
+        private void SaveEvents_AfterCreate(object sender, EventArgs e)
         {
-            if (Game1.activeClickableMenu is ShopMenu)
-            {
-                this.toolTipsAlreadyAdjusted.Clear();
-            }
+            ProfessionAdjustmentsData instance = this.Helper.ReadJsonFile<ProfessionAdjustmentsData>($"data/{Constants.SaveFolderName}.json") ?? new ProfessionAdjustmentsData();
+            this.itemsWithChangedValues = instance.itemsWithChangedValues;
+            this.Helper.WriteJsonFile($"data/{Constants.SaveFolderName}.json", instance);
         }
 
-        /* ControlEvents_MouseChanged
-         * 
-         */
-        private void ControlEvents_MouseChanged(object sender, EventArgsMouseStateChanged e) {
+        private void SaveEvents_AfterLoad(object sender, EventArgs e)
+        {
+            ProfessionAdjustmentsData instance = this.Helper.ReadJsonFile<ProfessionAdjustmentsData>($"data/{Constants.SaveFolderName}.json") ?? new ProfessionAdjustmentsData();
+            this.itemsWithChangedValues = instance.itemsWithChangedValues;
+            this.Helper.WriteJsonFile($"data/{Constants.SaveFolderName}.json", instance);
+        }
 
-            var x = e.PriorPosition.X;
-            var y = e.PriorPosition.Y;
+        private void SaveEvents_BeforeSave(object sender, EventArgs e)
+        {
+            ProfessionAdjustmentsData instance = this.Helper.ReadJsonFile<ProfessionAdjustmentsData>($"data/{Constants.SaveFolderName}.json");
+            instance.itemsWithChangedValues = this.itemsWithChangedValues;
+            this.Helper.WriteJsonFile($"data/{Constants.SaveFolderName}.json", instance);
+        }
 
-            if (Game1.activeClickableMenu is ShopMenu)
+        private void PlayerEvents_InventoryChanged(object sender, EventArgsInventoryChanged e) {
+
+            foreach (ItemStackChange itemStackChange in e.Added)
             {
-                var shop = Game1.activeClickableMenu as ShopMenu;
 
-                foreach (ClickableComponent c in shop.inventory.inventory)
+                Item item = itemStackChange.Item;
+
+                if (item is StardewValley.Object obj && this.ProfessionIsArtisan() && obj.Category == -26)
                 {
-                    if (c.containsPoint(x, y))
-                    {
-                        Item clickableComponent = shop.inventory.getItemFromClickableComponent(c);
+                    int _;
 
-                        if (clickableComponent != null && shop.highlightItemToSell(clickableComponent))
+                    if (!this.itemsWithChangedValues.TryGetValue(obj.Name, out _)) {
+                        if (this.ProfessionIsRancher() && (obj.Category == -5 || obj.Category == -6 || obj.Category == -18))
                         {
-                            bool isArtisan = this.ProfessionIsArtisan() && clickableComponent.Category == -26;
-                            double artisanValue = isArtisan ? onePt4OverOnePt1 : 1;
-
-                            double sellPercentage = (double)this.Helper.Reflection.GetField<float>(shop, "sellPercentage").GetValue();
-
-                            if (clickableComponent is StardewValley.Object obj && clickableComponent.Category == -26 && !this.toolTipsAlreadyAdjusted.Contains(obj)) // -26 is artisan goods
-                            {
-                                obj.Price = (int)(obj.Price / onePt4OverOnePt1);
-                                this.toolTipsAlreadyAdjusted.Add(obj);
-                            }
-
-                            //this.Helper.Reflection.GetField<int>(shop, "hoverPrice").SetValue((clickableComponent is StardewValley.Object ? (int)((double)(clickableComponent as StardewValley.Object).sellToStorePrice() * (sellPercentage / artisanValue)) : (int)((double)(clickableComponent.salePrice() / 2) * (sellPercentage / artisanValue))) * clickableComponent.Stack);
+                            this.itemsWithChangedValues.Add(obj.Name, obj.Price);
+                            obj.Price = (int)Math.Round(obj.Price / onePt4OverOnePt2);
                         }
-                    }
-                }
-            }
-        }
-
-        /* MenuEvents_MenuChanged
-         */
-        private void MenuEvents_MenuChanged(object sender, EventArgsClickableMenuChanged e) {
-
-            if (Game1.activeClickableMenu is DialogueBox) {
-
-                var menu = Game1.activeClickableMenu as DialogueBox;
-                var dialogues = this.Helper.Reflection.GetField<List<String>>(menu, "dialogues").GetValue();
-
-                if (dialogues.Count == 1 && dialogues[0] == "Go to sleep for the night?") {
-                    foreach (Item item in Game1.getFarm().shippingBin)
-                    {
-                        if (this.ProfessionIsArtisan())
+                        else
                         {
-
-                            if (item is StardewValley.Object obj && item.Category == -26) // -26 is artisan goods
-                            {
-                                obj.Price = (int)(obj.Price / onePt4OverOnePt1);
-                            }
-                            else
-                            {
-                                break;
-                            }
+                            this.Monitor.Log("e.Added " + obj.Price.ToString());
+                            this.itemsWithChangedValues.Add(obj.Name, obj.Price);
+                            obj.Price = (int)Math.Round(obj.Price / onePt4OverOnePt1);
+                            this.Monitor.Log("e.Added " + obj.Price.ToString());
                         }
                     }
                 }
@@ -137,6 +111,10 @@ namespace ProfessionAdjustments
     
         private bool ProfessionIsArtisan() {
             return Game1.player.professions.Contains(4);
+        }
+
+        private bool ProfessionIsRancher() {
+            return Game1.player.professions.Contains(0);
         }
     }
 }
