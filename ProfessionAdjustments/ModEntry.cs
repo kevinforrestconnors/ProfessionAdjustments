@@ -51,7 +51,7 @@ namespace ProfessionAdjustments
             if (asset.AssetNameEquals("Strings/UI"))
             {
                 IDictionary<string, string> data = asset.AsDictionary<string, string>().Data;
-                data["LevelUp_ProfessionDescription_Artisan"] = "Artisan goods (wine, cheese, oil, etc.) worth 10% more.";
+                data["LevelUp_ProfessionDescription_Artisan"] = "Artisan goods you produce (wine, cheese, oil, etc.) worth 10% more.";
             }
         }
 
@@ -87,7 +87,7 @@ namespace ProfessionAdjustments
 
                 Item item = itemStackChange.Item;
 
-                if (item is StardewValley.Object obj && this.ProfessionIsArtisan() && obj.Category == -26)
+                if (item is StardewValley.Object obj && obj.Category == -26)
                 {
                     int _;
 
@@ -97,13 +97,13 @@ namespace ProfessionAdjustments
                             this.itemsWithChangedValues.Add(obj.Name, obj.Price);
                             obj.Price = (int)Math.Round(obj.Price / onePt4OverOnePt2);
                         }
-                        else
+                        else if (this.ProfessionIsArtisan())
                         {
-                            this.Monitor.Log("e.Added " + obj.Price.ToString());
                             this.itemsWithChangedValues.Add(obj.Name, obj.Price);
                             obj.Price = (int)Math.Round(obj.Price / onePt4OverOnePt1);
-                            this.Monitor.Log("e.Added " + obj.Price.ToString());
                         }
+                    } else if (!this.ProfessionIsArtisan()) { // item found in list, but player has respecced into non-artisan
+                        this.itemsWithChangedValues.Remove(obj.Name);    
                     }
                 }
             }
