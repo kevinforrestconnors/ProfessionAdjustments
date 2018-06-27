@@ -51,7 +51,9 @@ namespace ProfessionAdjustments
             if (asset.AssetNameEquals("Strings/UI"))
             {
                 IDictionary<string, string> data = asset.AsDictionary<string, string>().Data;
-                data["LevelUp_ProfessionDescription_Artisan"] = "Artisan goods you produce (wine, cheese, oil, etc.) worth 10% more.";
+                if (data.TryGetValue("LevelUp_ProfessionDescription_Artisan", out string str)) {
+                    data["LevelUp_ProfessionDescription_Artisan"] = str.Replace("40%", "10%");
+                }
             }
         }
 
