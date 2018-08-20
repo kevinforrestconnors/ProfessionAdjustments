@@ -1,7 +1,7 @@
 ﻿{
   "Name": "Profession Adjustments",
   "Author": "Kevin Connors",
-  "Version": "1.0.6",
+  "Version": "1.0.9",
   "Description": "Changes Artisan bonus to 10%",
   "UniqueID": "KevinConnors.ProfessionAdjustments",
   "EntryDll": "ProfessionAdjustments.dll",
