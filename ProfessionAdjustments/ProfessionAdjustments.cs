@@ -48,19 +48,27 @@ namespace ProfessionAdjustments
             this.harmony = HarmonyInstance.Create("connorsk.ProfessionAdjustments");
 
             Type game1CompilerType = null;
-            foreach (var t in typeof(Game1).Assembly.GetTypes())
-                if (t.FullName == "StardewValley.Object+<>c") {
+            foreach (var t in typeof(Game1).Assembly.GetTypes()) {
+
+                this.Monitor.Log(t.FullName);
+                
+                if (t.FullName == "StardewValley.Object")
+                {
                     game1CompilerType = t;
                     this.Monitor.Log("Found Object.cs");
                 }
-                    
+            }
+
             MethodInfo sellToStorePriceMethod = null;
             foreach (var m in game1CompilerType.GetRuntimeMethods())
-                if (m.FullDescription().Contains("sellToStorePrice")) {
+            {
+                if (m.FullDescription().Contains("sellToStorePrice"))
+                {
                     sellToStorePriceMethod = m;
                     this.Monitor.Log("Found sellToStorePrice in Object.cs");
                 }
-            
+            }
+
             this.doTranspiler(sellToStorePriceMethod, typeof(SellToStorePriceMethodHook).GetMethod("Transpiler"));
         }
 

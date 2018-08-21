@@ -23,14 +23,16 @@ namespace ProfessionAdjustments.Overrides
             var newInsns = new List<CodeInstruction>();
             foreach (var insn in insns)
             {
-                ProfessionAdjustments.instance.Monitor.Log((string)insn.ToString());
+                ProfessionAdjustments.instance.Monitor.Log(insn.ToString());
 
-                if (insn.opcode == OpCodes.Ldc_R4 && (string)insn.operand == "1.4") {
-                    ProfessionAdjustments.instance.Monitor.Log((string)insn.operand);
-              
+                if (insn.opcode == OpCodes.Ldc_R4 && insn.operand.ToString() == "1.4") {
+                    
+                    ProfessionAdjustments.instance.Monitor.Log(insn.operand.ToString());
+
                     newInsns.Add(new CodeInstruction(OpCodes.Ldc_R4, 1.1f));
+                } else {
+                    newInsns.Add(insn);
                 }
-                newInsns.Add(insn);
             }
 
             return newInsns;
